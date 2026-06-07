@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkflow/domain/entities/user_profile.dart';
 import 'package:parkflow/domain/repositories/auth_repository.dart';
+import 'package:parkflow/domain/repositories/profile_repository.dart';
 import 'package:parkflow/data/repositories/supabase_auth_repository.dart';
+import 'package:parkflow/data/repositories/supabase_profile_repository.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>(
   (_) => Supabase.instance.client,
@@ -10,6 +12,10 @@ final supabaseClientProvider = Provider<SupabaseClient>(
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => SupabaseAuthRepository(ref.read(supabaseClientProvider)),
+);
+
+final profileRepositoryProvider = Provider<ProfileRepository>(
+  (ref) => SupabaseProfileRepository(ref.read(supabaseClientProvider)),
 );
 
 final authStateProvider = StreamProvider<UserProfile?>(

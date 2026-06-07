@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkflow/config/app_config.dart';
+import 'package:parkflow/ui/pages/driver_home_page.dart';
+import 'package:parkflow/ui/pages/host_home_page.dart';
 import 'package:parkflow/ui/pages/login_page.dart';
 import 'package:parkflow/ui/pages/profile_onboarding.dart';
 import 'package:parkflow/ui/pages/role_selection_page.dart';
@@ -35,7 +37,9 @@ class MyApp extends ConsumerWidget {
           if (user == null) return const LoginPage();
           if (user.needsOnboarding) return const ProfileOnboardingPage();
           if (user.needsRoleSelection) return const RoleSelectionPage();
-          return const LoginPage(); // placeholder hasta DriverHomePage / HostHomePage
+          return user.role == 'host'
+                ? const HostHomePage()
+                : const DriverHomePage();
         },
         loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator()),
