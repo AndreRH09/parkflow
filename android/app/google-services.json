@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "50803144677",
+    "project_id": "parkflow-auth",
+    "storage_bucket": "parkflow-auth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:50803144677:android:27fa0ce6046671c1f0610c",
+        "android_client_info": {
+          "package_name": "com.example.parkflow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "50803144677-lao66knjnj9k0qs0j8rjr04c085lq6rb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.parkflow",
+            "certificate_hash": "a7e74e4fcc878c0e9fac7cd25d966e31122ca2ef"
+          }
+        },
+        {
+          "client_id": "50803144677-oh6h7mcu1ioagm47l5rnrc3fojgi4ve1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtgA1qXtWTbCGK1-yleALAJ2LgTd-GdPA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "50803144677-oh6h7mcu1ioagm47l5rnrc3fojgi4ve1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

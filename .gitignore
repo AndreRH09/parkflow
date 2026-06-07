@@ -16,8 +16,11 @@ CLAUDE.md
 *.iml
 *.ipr
 *.iws
-.idea/
-
+.env
+lib/config/app_config.dart
+.idea/P
+ContextLiteral.md
+Planning
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
