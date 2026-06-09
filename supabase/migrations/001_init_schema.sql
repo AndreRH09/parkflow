@@ -1,13 +1,13 @@
 -- ============================================================
--- ParkFlow — Supabase Schema v1.0
--- Ejecutar en: Supabase Dashboard → SQL Editor
+-- ParkFlow — Migración Inicial v1.0
+-- Descripción: Schema inicial con auth, perfiles, spots, bids, bookings y reviews
 -- ============================================================
 
 -- ============================================================
 -- TABLA: profiles
 -- Sincronizada automáticamente con auth.users vía trigger
 -- ============================================================
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id               UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email            TEXT,
   full_name        TEXT,
@@ -34,11 +34,16 @@ BEGIN
   RETURN new;
 END; $$;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own_profile_select" ON public.profiles;
+DROP POLICY IF EXISTS "own_profile_insert" ON public.profiles;
+DROP POLICY IF EXISTS "own_profile_update" ON public.profiles;
+
 CREATE POLICY "own_profile_select" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "own_profile_insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "own_profile_update" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
@@ -48,20 +53,25 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "avatar_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "avatar_owner_upload" ON storage.objects;
+DROP POLICY IF EXISTS "avatar_owner_update" ON storage.objects;
+DROP POLICY IF EXISTS "avatar_owner_delete" ON storage.objects;
+
 CREATE POLICY "avatar_public_read"   ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 CREATE POLICY "avatar_owner_upload"  ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 CREATE POLICY "avatar_owner_update"  ON storage.objects FOR UPDATE USING  (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 CREATE POLICY "avatar_owner_delete"  ON storage.objects FOR DELETE USING  (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ============================================================
--- EXTENSIÓN PostGIS (requerida para HU-05/06)
+-- EXTENSIÓN PostGIS (requerida para búsqueda geoespacial)
 -- ============================================================
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- ============================================================
 -- TABLA: parking_spots
 -- ============================================================
-CREATE TABLE public.parking_spots (
+CREATE TABLE IF NOT EXISTS public.parking_spots (
   id                   UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   host_id              UUID NOT NULL REFERENCES public.profiles(id),
   address              TEXT NOT NULL,
@@ -82,9 +92,12 @@ CREATE TABLE public.parking_spots (
   created_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX parking_spots_geom_idx ON public.parking_spots USING GIST(geom);
+CREATE INDEX IF NOT EXISTS parking_spots_geom_idx ON public.parking_spots USING GIST(geom);
 
 ALTER TABLE public.parking_spots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "active_spots_public" ON public.parking_spots;
+DROP POLICY IF EXISTS "host_manage_own_spot" ON public.parking_spots;
+
 CREATE POLICY "active_spots_public"  ON public.parking_spots FOR SELECT USING (is_active = TRUE);
 CREATE POLICY "host_manage_own_spot" ON public.parking_spots FOR ALL    USING (auth.uid() = host_id);
 
@@ -93,13 +106,18 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('garage-photos', 'garage-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "garage_photo_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "garage_photo_owner_upload" ON storage.objects;
+DROP POLICY IF EXISTS "garage_photo_owner_update" ON storage.objects;
+DROP POLICY IF EXISTS "garage_photo_owner_delete" ON storage.objects;
+
 CREATE POLICY "garage_photo_public_read"  ON storage.objects FOR SELECT USING (bucket_id = 'garage-photos');
 CREATE POLICY "garage_photo_owner_upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'garage-photos' AND (storage.foldername(name))[1] = auth.uid()::text);
 CREATE POLICY "garage_photo_owner_update" ON storage.objects FOR UPDATE USING  (bucket_id = 'garage-photos' AND (storage.foldername(name))[1] = auth.uid()::text);
 CREATE POLICY "garage_photo_owner_delete" ON storage.objects FOR DELETE USING  (bucket_id = 'garage-photos' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- RPC: insertar cochera + marcar garage_config_complete en profiles
-CREATE OR REPLACE FUNCTION insert_parking_spot(
+CREATE OR REPLACE FUNCTION public.insert_parking_spot(
   p_host_id            UUID,
   p_address            TEXT,
   p_base_price         NUMERIC,
@@ -133,8 +151,8 @@ BEGIN
 END;
 $$;
 
--- RPC: búsqueda geoespacial para HU-05 (radio 800m por defecto)
-CREATE OR REPLACE FUNCTION nearby_spots(lat FLOAT, lng FLOAT, radius_m INT DEFAULT 800)
+-- RPC: búsqueda geoespacial (radio 800m por defecto)
+CREATE OR REPLACE FUNCTION public.nearby_spots(lat FLOAT, lng FLOAT, radius_m INT DEFAULT 800)
 RETURNS SETOF public.parking_spots LANGUAGE sql STABLE AS $$
   SELECT * FROM public.parking_spots
   WHERE is_active = TRUE
@@ -146,7 +164,7 @@ $$;
 -- ============================================================
 -- TABLA: bids (pujas/ofertas de conductores a anfitriones)
 -- ============================================================
-CREATE TABLE public.bids (
+CREATE TABLE IF NOT EXISTS public.bids (
   id                      UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   driver_id               UUID NOT NULL REFERENCES public.profiles(id),
   host_id                 UUID NOT NULL REFERENCES public.profiles(id),
@@ -163,6 +181,10 @@ CREATE TABLE public.bids (
 );
 
 ALTER TABLE public.bids ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "bid_participants" ON public.bids;
+DROP POLICY IF EXISTS "driver_insert_bid" ON public.bids;
+DROP POLICY IF EXISTS "host_update_bid" ON public.bids;
+
 CREATE POLICY "bid_participants"   ON public.bids FOR SELECT USING (auth.uid() = driver_id OR auth.uid() = host_id);
 CREATE POLICY "driver_insert_bid"  ON public.bids FOR INSERT WITH CHECK (auth.uid() = driver_id);
 CREATE POLICY "host_update_bid"    ON public.bids FOR UPDATE USING (auth.uid() = host_id);
@@ -170,7 +192,7 @@ CREATE POLICY "host_update_bid"    ON public.bids FOR UPDATE USING (auth.uid() =
 -- ============================================================
 -- TABLA: bookings (reservas confirmadas)
 -- ============================================================
-CREATE TABLE public.bookings (
+CREATE TABLE IF NOT EXISTS public.bookings (
   id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   bid_id         UUID NOT NULL REFERENCES public.bids(id),
   driver_id      UUID NOT NULL REFERENCES public.profiles(id),
@@ -186,13 +208,15 @@ CREATE TABLE public.bookings (
 );
 
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "booking_participants" ON public.bookings;
+
 CREATE POLICY "booking_participants" ON public.bookings
   FOR SELECT USING (auth.uid() = driver_id OR auth.uid() = host_id);
 
 -- ============================================================
--- TABLA: reviews (calificaciones bidireccionales — HU-14)
+-- TABLA: reviews (calificaciones bidireccionales)
 -- ============================================================
-CREATE TABLE public.reviews (
+CREATE TABLE IF NOT EXISTS public.reviews (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   booking_id  UUID NOT NULL REFERENCES public.bookings(id),
   reviewer_id UUID NOT NULL REFERENCES public.profiles(id),
@@ -204,6 +228,9 @@ CREATE TABLE public.reviews (
 );
 
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_reviews" ON public.reviews;
+DROP POLICY IF EXISTS "reviewer_insert" ON public.reviews;
+
 CREATE POLICY "public_reviews"   ON public.reviews FOR SELECT USING (TRUE);
 CREATE POLICY "reviewer_insert"  ON public.reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
 
@@ -219,6 +246,7 @@ BEGIN
   RETURN NEW;
 END; $$;
 
+DROP TRIGGER IF EXISTS on_review_inserted ON public.reviews;
 CREATE TRIGGER on_review_inserted
   AFTER INSERT ON public.reviews
   FOR EACH ROW EXECUTE PROCEDURE public.update_profile_rating();

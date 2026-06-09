@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:parkflow/dependency_injection/providers.dart';
+import 'package:parkflow/ui/pages/profile_page.dart';
 import 'package:parkflow/ui/theme/app_theme.dart';
 import 'package:parkflow/ui/widgets/app_bottom_nav.dart';
 
@@ -102,13 +103,18 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
   Widget _buildHeader(BuildContext context, String firstName, String? avatarUrl) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 26,
-          backgroundColor: AppColors.dustGray,
-          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-          child: avatarUrl == null
-              ? const Icon(Icons.person_rounded, color: AppColors.graphite, size: 28)
-              : null,
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ProfilePage()),
+          ),
+          child: CircleAvatar(
+            radius: 26,
+            backgroundColor: AppColors.dustGray,
+            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+            child: avatarUrl == null
+                ? const Icon(Icons.person_rounded, color: AppColors.graphite, size: 28)
+                : null,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

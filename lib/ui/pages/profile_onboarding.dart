@@ -43,10 +43,20 @@ class _ProfileOnboardingPageState extends ConsumerState<ProfileOnboardingPage> {
       ref.invalidate(authStateProvider);
     } catch (e) {
       if (mounted) {
+        final raw = e.toString();
+        final String msg;
+        if (raw.toLowerCase().contains('row-level') ||
+            raw.toLowerCase().contains('42501')) {
+          msg = 'Error de permisos RLS. Corre el schema SQL en Supabase.';
+        } else {
+          // Muestra error completo para diagnóstico
+          msg = raw.length > 120 ? raw.substring(0, 120) : raw;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Text(msg),
             backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 6),
           ),
         );
       }

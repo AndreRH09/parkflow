@@ -10,6 +10,7 @@ class UserProfile {
   final double rating;
   final int ratingCount;
   final bool profileComplete;
+  final bool garageConfigComplete;
   final String? city;
 
   const UserProfile({
@@ -24,12 +25,14 @@ class UserProfile {
     this.rating = 0,
     this.ratingCount = 0,
     this.profileComplete = false,
+    this.garageConfigComplete = false,
     this.city,
   });
 
   bool get needsOnboarding =>
       !profileComplete || fullName == null || age == null || dni == null;
   bool get needsRoleSelection => profileComplete && role == null;
+  bool get needsGarageSetup => role == 'host' && !garageConfigComplete;
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
@@ -44,6 +47,7 @@ class UserProfile {
       rating: (map['rating'] as num?)?.toDouble() ?? 0,
       ratingCount: (map['rating_count'] as int?) ?? 0,
       profileComplete: (map['profile_complete'] as bool?) ?? false,
+      garageConfigComplete: (map['garage_config_complete'] as bool?) ?? false,
       city: map['city'] as String?,
     );
   }
@@ -56,6 +60,7 @@ class UserProfile {
         'avatar_url': avatarUrl,
         'role': role,
         'profile_complete': profileComplete,
+        'garage_config_complete': garageConfigComplete,
         'city': city,
       };
 
@@ -67,6 +72,7 @@ class UserProfile {
     String? avatarUrl,
     String? role,
     bool? profileComplete,
+    bool? garageConfigComplete,
     String? city,
   }) {
     return UserProfile(
@@ -81,6 +87,7 @@ class UserProfile {
       rating: rating,
       ratingCount: ratingCount,
       profileComplete: profileComplete ?? this.profileComplete,
+      garageConfigComplete: garageConfigComplete ?? this.garageConfigComplete,
       city: city ?? this.city,
     );
   }

@@ -53,35 +53,63 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
+  // Translates backend exceptions to safe user-facing messages
+  String _friendlyError(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('network') || msg.contains('socket') || msg.contains('host lookup')) {
+      return 'No se pudo conectar a Supabase. Proyecto pausado o sin red.\n${e.toString().substring(0, e.toString().length.clamp(0, 120))}';
+    }
+    if (msg.contains('invalid login') || msg.contains('invalid credentials') || msg.contains('credenciales')) {
+      return 'Correo o contraseña incorrectos.';
+    }
+    if (msg.contains('email already') || msg.contains('already registered') || msg.contains('already exists')) {
+      return 'Este correo ya está registrado.';
+    }
+    if (msg.contains('cancelled') || msg.contains('canceled')) {
+      return 'Inicio de sesión cancelado.';
+    }
+    if (msg.contains('confirma') || msg.contains('confirm')) {
+      return 'Revisa tu correo para confirmar tu cuenta.';
+    }
+    return 'Error: ${e.toString().substring(0, e.toString().length.clamp(0, 200))}';
+  }
+
   Future<void> _onGoogleSignIn() async {
+    if (_loadingGoogle) return;
     setState(() => _loadingGoogle = true);
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
     } catch (e) {
-      if (mounted) _showError('Error al iniciar sesión con Google: $e');
+      if (mounted) _showError(_friendlyError(e));
     } finally {
       if (mounted) setState(() => _loadingGoogle = false);
     }
   }
 
   Future<void> _onLogin() async {
+    if (_loadingEmail) return;
     final email = _loginEmailCtl.text.trim();
     final password = _loginPasswordCtl.text;
     if (email.isEmpty || password.isEmpty) {
       _showError('Completa todos los campos');
       return;
     }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      _showError('Ingresa un correo válido');
+      return;
+    }
     setState(() => _loadingEmail = true);
     try {
       await ref.read(authRepositoryProvider).signInWithEmail(email, password);
     } catch (e) {
-      if (mounted) _showError('Error: $e');
+      if (mounted) _showError(_friendlyError(e));
     } finally {
       if (mounted) setState(() => _loadingEmail = false);
     }
   }
 
   Future<void> _onRegister() async {
+    if (_loadingEmail) return;
     final email = _regEmailCtl.text.trim();
     final password = _regPasswordCtl.text;
     final confirm = _regConfirmCtl.text;
@@ -89,19 +117,23 @@ class _LoginPageState extends ConsumerState<LoginPage>
       _showError('Completa todos los campos');
       return;
     }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      _showError('Ingresa un correo válido');
+      return;
+    }
     if (password != confirm) {
       _showError('Las contraseñas no coinciden');
       return;
     }
-    if (password.length < 6) {
-      _showError('La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      _showError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
     setState(() => _loadingEmail = true);
     try {
       await ref.read(authRepositoryProvider).registerWithEmail(email, password);
     } catch (e) {
-      if (mounted) _showError('$e');
+      if (mounted) _showError(_friendlyError(e));
     } finally {
       if (mounted) setState(() => _loadingEmail = false);
     }
