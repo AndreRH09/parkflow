@@ -11,6 +11,11 @@ class Garage {
   final bool isActive;
   final double latitude;
   final double longitude;
+  final double rating;
+  final int ratingCount;
+  final String? availabilityStart; // 'HH:mm:ss'
+  final String? availabilityEnd;
+  final List<int> availableDays; // 1=Lun..7=Dom
 
   const Garage({
     required this.id,
@@ -25,6 +30,11 @@ class Garage {
     this.isActive = true,
     this.latitude = 0,
     this.longitude = 0,
+    this.rating = 0,
+    this.ratingCount = 0,
+    this.availabilityStart,
+    this.availabilityEnd,
+    this.availableDays = const [1, 2, 3, 4, 5, 6, 7],
   });
 
   String? get primaryPhotoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
@@ -47,6 +57,14 @@ class Garage {
               .toList() ??
           [],
       isActive: (map['is_active'] as bool?) ?? true,
+      rating: (map['rating'] as num?)?.toDouble() ?? 0,
+      ratingCount: (map['rating_count'] as num?)?.toInt() ?? 0,
+      availabilityStart: map['availability_start'] as String?,
+      availabilityEnd: map['availability_end'] as String?,
+      availableDays: (map['available_days'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [1, 2, 3, 4, 5, 6, 7],
     );
   }
 }

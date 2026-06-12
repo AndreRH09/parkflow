@@ -133,6 +133,14 @@ BEGIN
 END;
 $$;
 
+-- RPC: eliminar cuenta de usuario (cascade deletes related records)
+CREATE OR REPLACE FUNCTION delete_user_account()
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$;
+
 -- RPC: búsqueda geoespacial para HU-05 (radio 800m por defecto)
 CREATE OR REPLACE FUNCTION nearby_spots(lat FLOAT, lng FLOAT, radius_m INT DEFAULT 800)
 RETURNS SETOF public.parking_spots LANGUAGE sql STABLE AS $$

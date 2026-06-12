@@ -20,11 +20,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   final _nameCtl = TextEditingController();
   final _phoneCtl = TextEditingController();
   final _cityCtl = TextEditingController();
+  final _emailCtl = TextEditingController();
 
   Uint8List? _pendingAvatar;
   String? _pendingAvatarExt;
   bool _loading = false;
   bool _detectingCity = false;
+  bool _isEditMode = false;
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       _nameCtl.text = user.fullName ?? '';
       _phoneCtl.text = user.phone ?? '';
       _cityCtl.text = user.city ?? '';
+      _emailCtl.text = user.email ?? '';
     }
   }
 
@@ -42,6 +45,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _nameCtl.dispose();
     _phoneCtl.dispose();
     _cityCtl.dispose();
+    _emailCtl.dispose();
     super.dispose();
   }
 
@@ -83,10 +87,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         return;
       }
 
-      // Last known position is instant; fall back to current with 10s timeout
       Position? pos = await Geolocator.getLastKnownPosition();
       pos ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.low),
       ).timeout(const Duration(seconds: 10));
 
       final placemarks = await placemarkFromCoordinates(
@@ -123,7 +127,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     setState(() => _loading = true);
     try {
-      // Avatar upload is best-effort: failure doesn't block text fields
       String? newAvatarUrl;
       if (_pendingAvatar != null && _pendingAvatarExt != null) {
         try {
@@ -154,7 +157,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           );
 
       ref.invalidate(authStateProvider);
-      if (mounted) Navigator.of(context).pop();
+      setState(() => _isEditMode = false);
+      _pendingAvatar = null;
+      _pendingAvatarExt = null;
     } catch (_) {
       _showError('No se pudo guardar. Intenta de nuevo.');
     } finally {
@@ -162,13 +167,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Future<void> _signOut() async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Cerrar sesión',
+        title: const Text('Eliminar cuenta',
             style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
-        content: const Text('¿Estás seguro que deseas cerrar sesión?',
+        content: const Text(
+            '¿Eliminar tu cuenta de forma permanente? No se puede deshacer.',
             style: TextStyle(fontFamily: 'Inter')),
         actions: [
           TextButton(
@@ -178,18 +184,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Salir',
+            child: const Text('Eliminar',
                 style: TextStyle(fontFamily: 'Inter', color: Colors.red)),
           ),
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
-    await ref.read(authRepositoryProvider).signOut();
-    ref.invalidate(authStateProvider);
-    if (mounted) {
-      // Pop toda la pila para que main.dart muestre LoginPage
-      Navigator.of(context).popUntil((route) => route.isFirst);
+    if (confirm != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await ref.read(authRepositoryProvider).deleteAccount();
+      ref.invalidate(authStateProvider);
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) _showError('Error al eliminar: ${e.toString().substring(0, 200)}');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -198,6 +211,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
     );
+  }
+
+  void _cancelEdit() {
+    final user = ref.read(authStateProvider).value;
+    if (user != null) {
+      _nameCtl.text = user.fullName ?? '';
+      _phoneCtl.text = user.phone ?? '';
+      _cityCtl.text = user.city ?? '';
+    }
+    _pendingAvatar = null;
+    _pendingAvatarExt = null;
+    setState(() => _isEditMode = false);
   }
 
   @override
@@ -218,6 +243,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         backgroundColor: AppColors.brightSnow,
         elevation: 0,
         foregroundColor: AppColors.graphite,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _deleteAccount();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline_rounded,
+                        color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Eliminar cuenta',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -233,6 +287,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   hint: 'Nombre completo',
                   icon: Icons.person_outline_rounded,
                   maxLength: 20,
+                  enabled: _isEditMode,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Nombre requerido';
                     if (v.trim().length > 20) return 'Máximo 20 caracteres';
@@ -247,6 +302,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   maxLength: 9,
+                  enabled: _isEditMode,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Teléfono requerido';
                     if (v.trim().length != 9) return 'Debe tener exactamente 9 dígitos';
@@ -255,39 +311,129 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 const SizedBox(height: 14),
                 _buildCityField(),
+                if (_isEditMode) ...[
+                  const SizedBox(height: 14),
+                  _buildField(
+                    controller: _emailCtl,
+                    hint: 'Correo',
+                    icon: Icons.email_outlined,
+                    enabled: false,
+                    validator: null,
+                  ),
+                ],
                 const SizedBox(height: 36),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.mustard,
-                      foregroundColor: AppColors.graphite,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                if (!_isEditMode)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : () => setState(() => _isEditMode = true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mustard,
+                        foregroundColor: AppColors.graphite,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Editar perfil',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.graphite,
+                        ),
+                      ),
                     ),
-                    child: _loading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Guardar cambios',
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _loading ? null : _cancelEdit,
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.dustGray),
+                          ),
+                          child: const Text(
+                            'Cancelar',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w700,
                               color: AppColors.graphite,
                             ),
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.mustard,
+                            foregroundColor: AppColors.graphite,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text(
+                                  'Guardar',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.graphite,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: _loading ? null : _signOut,
+                    onPressed: _loading ? null : () async {
+                      final buildContext = context;
+                      final confirmed = await showDialog<bool>(
+                        context: buildContext,
+                        builder: (_) => AlertDialog(
+                          title: const Text('Cerrar sesión',
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700)),
+                          content: const Text('¿Estás seguro?',
+                              style: TextStyle(fontFamily: 'Inter')),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancelar',
+                                  style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: AppColors.graphite)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Salir',
+                                  style: TextStyle(
+                                      fontFamily: 'Inter', color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true || !mounted) return;
+                      await ref.read(authRepositoryProvider).signOut();
+                      ref.invalidate(authStateProvider);
+                      if (mounted) {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      }
+                    },
                     icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 20),
                     label: const Text(
                       'Cerrar sesión',
@@ -322,7 +468,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
 
     return GestureDetector(
-      onTap: _pickImage,
+      onTap: _isEditMode ? _pickImage : null,
       child: Stack(
         alignment: Alignment.bottomRight,
         children: [
@@ -335,16 +481,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     size: 56, color: AppColors.graphite)
                 : null,
           ),
-          Container(
-            width: 34,
-            height: 34,
-            decoration: const BoxDecoration(
-              color: AppColors.mustard,
-              shape: BoxShape.circle,
+          if (_isEditMode)
+            Container(
+              width: 34,
+              height: 34,
+              decoration: const BoxDecoration(
+                color: AppColors.mustard,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.camera_alt_rounded,
+                  size: 18, color: AppColors.graphite),
             ),
-            child: const Icon(Icons.camera_alt_rounded,
-                size: 18, color: AppColors.graphite),
-          ),
         ],
       ),
     );
@@ -357,6 +504,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     int? maxLength,
+    bool enabled = true,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
@@ -364,17 +512,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       maxLength: maxLength,
+      enabled: enabled,
       validator: validator,
       style: const TextStyle(fontFamily: 'Inter', color: AppColors.graphite),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(
             fontFamily: 'Inter', color: AppColors.textSecondary),
-        prefixIcon: Icon(icon, color: AppColors.textSecondary),
+        prefixIcon: Icon(icon,
+            color: enabled ? AppColors.textSecondary : AppColors.dustGray),
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: enabled ? AppColors.white : AppColors.dustGray.withAlpha(30),
         counterText: '',
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: AppColors.dustGray),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: AppColors.dustGray),
+        ),
+        disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.dustGray),
         ),
@@ -385,33 +543,47 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildCityField() {
     return TextFormField(
       controller: _cityCtl,
+      enabled: _isEditMode,
       style: const TextStyle(fontFamily: 'Inter', color: AppColors.graphite),
       decoration: InputDecoration(
         hintText: 'Ciudad',
         hintStyle: const TextStyle(
             fontFamily: 'Inter', color: AppColors.textSecondary),
-        prefixIcon:
-            const Icon(Icons.location_city_outlined, color: AppColors.textSecondary),
+        prefixIcon: Icon(Icons.location_city_outlined,
+            color:
+                _isEditMode ? AppColors.textSecondary : AppColors.dustGray),
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: _isEditMode
+            ? AppColors.white
+            : AppColors.dustGray.withAlpha(30),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.dustGray),
         ),
-        suffixIcon: _detectingCity
-            ? const Padding(
-                padding: EdgeInsets.all(14),
-                child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-              )
-            : IconButton(
-                icon: const Icon(Icons.my_location_rounded,
-                    color: AppColors.graphite),
-                onPressed: _detectCity,
-                tooltip: 'Detectar ciudad',
-              ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: AppColors.dustGray),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: AppColors.dustGray),
+        ),
+        suffixIcon: _isEditMode
+            ? (_detectingCity
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.my_location_rounded,
+                        color: AppColors.graphite),
+                    onPressed: _detectCity,
+                    tooltip: 'Detectar ciudad',
+                  ))
+            : null,
       ),
     );
   }

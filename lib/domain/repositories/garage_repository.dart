@@ -21,4 +21,16 @@ abstract class GarageRepository {
     double latitude,
     double longitude,
   });
+
+  Future<List<Garage>> getGaragesByHost(String hostId);
+
+  /// Actualiza disponibilidad de una cochera (HU-11): switch maestro + horario + días.
+  /// `start`/`end` formato 'HH:mm'; `days` enteros 1=Lun..7=Dom.
+  Future<void> updateAvailability({
+    required String spotId,
+    required bool isActive,
+    String? start,
+    String? end,
+    List<int>? days,
+  });
 }

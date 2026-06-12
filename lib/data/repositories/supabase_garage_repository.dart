@@ -71,4 +71,33 @@ class SupabaseGarageRepository implements GarageRepository {
 
     return Garage.fromMap(row);
   }
+
+  @override
+  Future<List<Garage>> getGaragesByHost(String hostId) async {
+    final rows = await _client
+        .from('parking_spots')
+        .select()
+        .eq('host_id', hostId)
+        .order('created_at', ascending: false);
+
+    return (rows as List)
+        .map((r) => Garage.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<void> updateAvailability({
+    required String spotId,
+    required bool isActive,
+    String? start,
+    String? end,
+    List<int>? days,
+  }) async {
+    final patch = <String, dynamic>{'is_active': isActive};
+    if (start != null) patch['availability_start'] = start;
+    if (end != null) patch['availability_end'] = end;
+    if (days != null) patch['available_days'] = days;
+
+    await _client.from('parking_spots').update(patch).eq('id', spotId);
+  }
 }

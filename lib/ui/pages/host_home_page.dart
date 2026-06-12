@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:parkflow/dependency_injection/providers.dart';
+import 'package:parkflow/domain/entities/garage.dart';
+import 'package:parkflow/ui/pages/availability_page.dart';
+import 'package:parkflow/ui/pages/earnings_page.dart';
+import 'package:parkflow/ui/pages/parking_config_page.dart';
 import 'package:parkflow/ui/pages/profile_page.dart';
+import 'package:parkflow/ui/pages/requests_page.dart';
 import 'package:parkflow/ui/theme/app_theme.dart';
 import 'package:parkflow/ui/widgets/app_bottom_nav.dart';
 
@@ -25,12 +30,20 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
 
   static const _filters = ['Todo', 'Estacionamiento', 'Vehiculo', 'Moto', 'Pickup'];
 
-  // Placeholder spot data until Supabase integration
-  static const _mockSpots = [
-    _SpotData(name: 'Garaje Centro', address: 'Av. Ejercito 120, Arequipa', price: 5.00, rating: 4.5),
-    _SpotData(name: 'Plaza Parking', address: 'Calle Mercaderes 45, Arequipa', price: 3.50, rating: 4.2),
-    _SpotData(name: 'Cochera Norte', address: 'Av. Aviacion 890, Arequipa', price: 4.00, rating: 4.8),
-  ];
+  Future<void> _openConfig() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ParkingConfigPage()),
+    );
+    ref.invalidate(myGaragesProvider);
+  }
+
+  void _openEarnings() => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const EarningsPage()),
+      );
+
+  void _openAvailability(Garage garage) => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => AvailabilityPage(garage: garage)),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +59,8 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
           index: _navIndex,
           children: [
             _buildHomeTab(context, firstName, user?.avatarUrl),
-            _buildPlaceholder('Solicitudes', Icons.inbox_rounded),
-            _buildPlaceholder('Mi Cochera', Icons.garage_rounded),
+            const RequestsPage(embedded: true),
+            _buildGarageTab(),
             _buildPlaceholder('Configuracion', Icons.settings_rounded),
           ],
         ),
@@ -73,6 +86,8 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
                 const SizedBox(height: 20),
                 _buildSearchBar(context),
                 const SizedBox(height: 16),
+                _buildQuickActions(),
+                const SizedBox(height: 16),
                 _buildFilterChips(),
                 const SizedBox(height: 20),
               ],
@@ -83,18 +98,42 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-            child: Text(
-              'Cocheras Populares',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.graphite,
-                fontFamily: 'Inter',
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Mis Cocheras',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.graphite,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _openConfig,
+                  child: const Row(
+                    children: [
+                      Icon(Icons.add_circle_rounded,
+                          size: 18, color: AppColors.graphite),
+                      SizedBox(width: 4),
+                      Text(
+                        'Agregar',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.graphite,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        SliverToBoxAdapter(child: _buildSpotCards()),
+        SliverToBoxAdapter(child: _buildGarageCarousel()),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
       ],
     );
@@ -187,6 +226,28 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.account_balance_wallet_rounded,
+            label: 'Ganancias',
+            onTap: _openEarnings,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.inbox_rounded,
+            label: 'Solicitudes',
+            onTap: () => setState(() => _navIndex = 1),
+          ),
+        ),
+      ],
     );
   }
 
@@ -305,15 +366,163 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
     );
   }
 
-  Widget _buildSpotCards() {
-    return SizedBox(
-      height: 240,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _mockSpots.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemBuilder: (_, i) => _SpotCard(spot: _mockSpots[i]),
+  Widget _buildGarageCarousel() {
+    final garagesAsync = ref.watch(myGaragesProvider);
+    return garagesAsync.when(
+      loading: () => const SizedBox(
+        height: 240,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SizedBox(
+        height: 240,
+        child: Center(
+          child: Text(
+            'Error al cargar cocheras',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ),
+      ),
+      data: (garages) {
+        if (garages.isEmpty) return _buildEmptyGarages();
+        return SizedBox(
+          height: 240,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: garages.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            itemBuilder: (_, i) => _GarageCard(
+              garage: garages[i],
+              onTap: () => _openAvailability(garages[i]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyGarages() {
+    return Container(
+      height: 200,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.dustGray),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.garage_rounded, size: 44, color: AppColors.dustGray),
+          const SizedBox(height: 10),
+          const Text(
+            'Aun no tienes cocheras',
+            style: TextStyle(
+              color: AppColors.graphite,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Inter',
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Publica tu primer espacio',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: _openConfig,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.mustard,
+              foregroundColor: AppColors.graphite,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text(
+              'Agregar cochera',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Cochera tab (full list) ──────────────────────────────────────────────────
+
+  Widget _buildGarageTab() {
+    final garagesAsync = ref.watch(myGaragesProvider);
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(myGaragesProvider),
+      child: garagesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => ListView(
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Text(
+                'Error al cargar cocheras',
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontFamily: 'Inter'),
+              ),
+            ),
+          ],
+        ),
+        data: (garages) => CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Mi Cochera',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.graphite,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    _IconButton(icon: Icons.add_rounded, onTap: _openConfig),
+                  ],
+                ),
+              ),
+            ),
+            if (garages.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: _buildEmptyGarages(),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                sliver: SliverList.separated(
+                  itemCount: garages.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (_, i) => _GarageListTile(
+                    garage: garages[i],
+                    onTap: () => _openAvailability(garages[i]),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -349,28 +558,55 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
   }
 }
 
-// ── Spot card ────────────────────────────────────────────────────────────────
+// ── Primary photo helper ──────────────────────────────────────────────────────
 
-class _SpotData {
-  final String name;
-  final String address;
-  final double price;
-  final double rating;
-  const _SpotData({
-    required this.name,
-    required this.address,
-    required this.price,
-    required this.rating,
-  });
-}
-
-class _SpotCard extends StatelessWidget {
-  final _SpotData spot;
-  const _SpotCard({required this.spot});
+class _GaragePhoto extends StatelessWidget {
+  final String? url;
+  final double size;
+  const _GaragePhoto({required this.url, this.size = 48});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    if (url == null) {
+      return Center(
+        child: Icon(Icons.directions_car_rounded,
+            size: size, color: AppColors.white),
+      );
+    }
+    return Image.network(
+      url!,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (ctx, child, progress) => progress == null
+          ? child
+          : const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+      errorBuilder: (_, __, ___) => Center(
+        child: Icon(Icons.broken_image_rounded,
+            size: size, color: AppColors.white),
+      ),
+    );
+  }
+}
+
+// ── Garage card (home carousel) ───────────────────────────────────────────────
+
+class _GarageCard extends StatelessWidget {
+  final Garage garage;
+  final VoidCallback? onTap;
+  const _GarageCard({required this.garage, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       width: 200,
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -386,16 +622,14 @@ class _SpotCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Vehicle / spot image placeholder
-          Container(
-            height: 120,
-            decoration: const BoxDecoration(
+          // Primary photo
+          ClipRRect(
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(32)),
+            child: Container(
+              height: 120,
               color: AppColors.dustGray,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-            ),
-            child: const Center(
-              child: Icon(Icons.directions_car_rounded,
-                  size: 48, color: AppColors.white),
+              child: _GaragePhoto(url: garage.primaryPhotoUrl),
             ),
           ),
           Padding(
@@ -407,7 +641,7 @@ class _SpotCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        spot.name,
+                        garage.address,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -421,7 +655,7 @@ class _SpotCard extends StatelessWidget {
                     const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
                     const SizedBox(width: 2),
                     Text(
-                      spot.rating.toStringAsFixed(1),
+                      garage.rating.toStringAsFixed(1),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -431,32 +665,14 @@ class _SpotCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on_outlined,
-                        size: 12, color: AppColors.textSecondary),
-                    const SizedBox(width: 2),
-                    Expanded(
-                      child: Text(
-                        spot.address,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                          fontFamily: 'Inter',
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 6),
+                _StatusPill(active: garage.isActive),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'S/ ${spot.price.toStringAsFixed(2)}/hr',
+                      'S/ ${garage.basePricePerHour.toStringAsFixed(2)}/hr',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -480,6 +696,182 @@ class _SpotCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      ),
+    );
+  }
+}
+
+// ── Garage list tile (Cochera tab) ────────────────────────────────────────────
+
+class _GarageListTile extends StatelessWidget {
+  final Garage garage;
+  final VoidCallback? onTap;
+  const _GarageListTile({required this.garage, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.graphite.withAlpha(12),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
+            child: Container(
+              width: 110,
+              height: 110,
+              color: AppColors.dustGray,
+              child: _GaragePhoto(url: garage.primaryPhotoUrl, size: 36),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    garage.address,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.graphite,
+                      fontFamily: 'Inter',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _StatusPill(active: garage.isActive),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                      const SizedBox(width: 2),
+                      Text(
+                        garage.rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.graphite,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'S/ ${garage.basePricePerHour.toStringAsFixed(2)}/hr',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.graphite,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final bool active;
+  const _StatusPill({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? Colors.green : AppColors.textSecondary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withAlpha(30),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        active ? 'Activa' : 'Inactiva',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+          fontFamily: 'Inter',
+        ),
+      ),
+    );
+  }
+}
+
+// ── Quick action button (home tab) ───────────────────────────────────────────
+
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _QuickAction(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.graphite.withAlpha(12),
+              blurRadius: 18,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.mustard,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: AppColors.graphite),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.graphite,
+                  fontFamily: 'Inter',
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

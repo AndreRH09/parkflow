@@ -131,9 +131,14 @@ class _ProfileOnboardingPageState extends ConsumerState<ProfileOnboardingPage> {
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20)),
                   ),
-                  keyboardType: TextInputType.text,
-                  validator: (v) =>
-                      (v?.trim().isEmpty ?? true) ? 'DNI requerido' : null,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  validator: (v) {
+                    final trimmed = v?.trim() ?? '';
+                    if (trimmed.isEmpty) return 'DNI requerido';
+                    if (trimmed.length < 8) return 'DNI debe tener 8 dígitos';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(

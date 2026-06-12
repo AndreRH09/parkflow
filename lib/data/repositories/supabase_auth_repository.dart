@@ -100,6 +100,17 @@ class SupabaseAuthRepository implements AuthRepository {
     _cachedProfile = null;
   }
 
+  @override
+  Future<void> deleteAccount() async {
+    await _client.rpc('delete_user_account');
+    try {
+      await _ensureGoogleInit();
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+    await _client.auth.signOut();
+    _cachedProfile = null;
+  }
+
   Future<UserProfile> _fetchProfile(String userId) async {
     final rows = await _client
         .from('profiles')
