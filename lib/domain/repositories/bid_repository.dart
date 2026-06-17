@@ -9,4 +9,18 @@ abstract class BidRepository {
 
   /// Rechaza la puja: marca `rejected`.
   Future<void> rejectBid(String bidId);
+
+  /// Driver: crea nueva puja (HU-07).
+  Future<String> createBid({
+    required String hostId,
+    required String spotId,
+    required double proposedPricePerHour,
+    required DateTime startTime,
+    required double hoursRequested,
+    String? vehiclePlate,
+    Map<String, dynamic>? vehicleDimensions,
+  });
+
+  /// Driver: historial de pujas del conductor (HU-08).
+  Future<List<Bid>> getDriverBids(String driverId);
 }

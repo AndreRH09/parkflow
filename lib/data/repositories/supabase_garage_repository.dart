@@ -86,6 +86,19 @@ class SupabaseGarageRepository implements GarageRepository {
   }
 
   @override
+  Future<List<Garage>> getNearbyGarages(double lat, double lng, {int radiusM = 800}) async {
+    final rows = await _client.rpc('nearby_spots', params: {
+      'lat': lat,
+      'lng': lng,
+      'radius_m': radiusM,
+    });
+
+    return (rows as List)
+        .map((r) => Garage.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<void> updateAvailability({
     required String spotId,
     required bool isActive,

@@ -3,29 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:parkflow/ui/theme/app_theme.dart';
 import 'package:parkflow/dependency_injection/providers.dart';
 
-class LoginPage extends ConsumerStatefulWidget {
-  final VoidCallback? onRegisterTap;
+class RegisterPage extends ConsumerStatefulWidget {
+  final VoidCallback? onLoginTap;
 
-  const LoginPage({super.key, this.onRegisterTap});
+  const RegisterPage({super.key, this.onLoginTap});
 
   @override
-  ConsumerState<LoginPage> createState() => _LoginPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage> {
-  bool _isEmailFormOpen = false;
-
-  final _loginEmailCtl = TextEditingController();
-  final _loginPasswordCtl = TextEditingController();
-  bool _obscureLogin = true;
+class _RegisterPageState extends ConsumerState<RegisterPage> {
+  final _emailCtl = TextEditingController();
+  final _passwordCtl = TextEditingController();
+  final _confirmCtl = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   bool _loadingGoogle = false;
   bool _loadingEmail = false;
 
   @override
   void dispose() {
-    _loginEmailCtl.dispose();
-    _loginPasswordCtl.dispose();
+    _emailCtl.dispose();
+    _passwordCtl.dispose();
+    _confirmCtl.dispose();
     super.dispose();
   }
 
@@ -40,22 +41,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (msg.contains('network') || msg.contains('socket') || msg.contains('host lookup')) {
       return 'No se pudo conectar a Supabase. Proyecto pausado o sin red.\n${e.toString().substring(0, e.toString().length.clamp(0, 120))}';
     }
-    if (msg.contains('invalid login') || msg.contains('invalid credentials') || msg.contains('credenciales')) {
-      return 'Correo o contraseña incorrectos.';
-    }
     if (msg.contains('email already') || msg.contains('already registered') || msg.contains('already exists')) {
       return 'Este correo ya está registrado.';
     }
-    if (msg.contains('cancelled') || msg.contains('canceled')) {
-      return 'Inicio de sesión cancelado.';
-    }
-    if (msg.contains('confirma') || msg.contains('confirm')) {
-      return 'Revisa tu correo para confirmar tu cuenta.';
+    if (msg.contains('invalid') || msg.contains('malformed')) {
+      return 'Correo o contraseña inválidos.';
     }
     return 'Error: ${e.toString().substring(0, e.toString().length.clamp(0, 200))}';
   }
 
-  Future<void> _onGoogleSignIn() async {
+  Future<void> _onGoogleSignUp() async {
     if (_loadingGoogle) return;
     setState(() => _loadingGoogle = true);
     try {
@@ -67,11 +62,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  Future<void> _onLogin() async {
+  Future<void> _onRegister() async {
     if (_loadingEmail) return;
-    final email = _loginEmailCtl.text.trim();
-    final password = _loginPasswordCtl.text;
-    if (email.isEmpty || password.isEmpty) {
+    final email = _emailCtl.text.trim();
+    final password = _passwordCtl.text;
+    final confirm = _confirmCtl.text;
+
+    if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
       _showError('Completa todos los campos');
       return;
     }
@@ -79,9 +76,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       _showError('Ingresa un correo válido');
       return;
     }
+    if (password != confirm) {
+      _showError('Las contraseñas no coinciden');
+      return;
+    }
+    if (password.length < 8) {
+      _showError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
     setState(() => _loadingEmail = true);
     try {
-      await ref.read(authRepositoryProvider).signInWithEmail(email, password);
+      await ref.read(authRepositoryProvider).registerWithEmail(email, password);
     } catch (e) {
       if (mounted) _showError(_friendlyError(e));
     } finally {
@@ -107,7 +113,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 40),
                     _buildMainContent(),
                     const SizedBox(height: 40),
-                    _buildInteractiveArea(),
+                    _buildForm(),
                     const SizedBox(height: 48),
                     _buildFooter(),
                   ],
@@ -150,7 +156,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildMainContent() => Column(
         children: [
           Text(
-            'Bienvenido de vuelta',
+            'Crear cuenta',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium!.copyWith(
                   fontWeight: FontWeight.w600,
@@ -160,7 +166,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Inicia sesión para continuar',
+            'Regístrate para comenzar',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                   color: AppColors.textSecondary,
@@ -169,58 +175,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ],
       );
 
-  Widget _buildInteractiveArea() => AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: SizeTransition(
-            sizeFactor: animation,
-            child: child,
-          ),
-        ),
-        child: _isEmailFormOpen ? _buildEmailForm() : _buildInitialButtons(),
-      );
-
-  Widget _buildInitialButtons() => Column(
-        key: const ValueKey('buttons'),
+  Widget _buildForm() => Column(
         spacing: 16,
         children: [
           _googleButton(),
           _orDivider(),
-          _emailButton(),
-        ],
-      );
-
-  Widget _emailButton() => SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton(
-          onPressed: () => setState(() => _isEmailFormOpen = true),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            foregroundColor: AppColors.accent,
-            elevation: 0,
-            side: const BorderSide(color: AppColors.dustGray),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
-          child: Text(
-            'Iniciar sesión con email',
-            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.accent,
-                ),
-          ),
-        ),
-      );
-
-  Widget _buildEmailForm() => Column(
-        key: const ValueKey('form'),
-        spacing: 16,
-        children: [
           TextField(
-            controller: _loginEmailCtl,
+            controller: _emailCtl,
             decoration: InputDecoration(
               hintText: 'Correo electrónico',
               contentPadding: const EdgeInsets.symmetric(
@@ -247,8 +208,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           TextField(
-            controller: _loginPasswordCtl,
-            obscureText: _obscureLogin,
+            controller: _passwordCtl,
+            obscureText: _obscurePassword,
             decoration: InputDecoration(
               hintText: 'Contraseña',
               contentPadding: const EdgeInsets.symmetric(
@@ -272,11 +233,46 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscureLogin ? Icons.visibility_off : Icons.visibility,
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   color: AppColors.textSecondary,
                 ),
                 onPressed: () =>
-                    setState(() => _obscureLogin = !_obscureLogin),
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          TextField(
+            controller: _confirmCtl,
+            obscureText: _obscureConfirm,
+            decoration: InputDecoration(
+              hintText: 'Confirmar contraseña',
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(color: AppColors.dustGray),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(color: AppColors.dustGray),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(
+                  color: AppColors.accent,
+                  width: 1.5,
+                ),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                  color: AppColors.textSecondary,
+                ),
+                onPressed: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
               ),
             ),
             style: Theme.of(context).textTheme.bodyLarge,
@@ -286,7 +282,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: _loadingEmail ? null : _onLogin,
+              onPressed: _loadingEmail ? null : _onRegister,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 shape: RoundedRectangleBorder(
@@ -305,26 +301,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                     )
                   : Text(
-                      'Iniciar sesión',
+                      'Crear cuenta',
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
             ),
           ),
-          TextButton(
-            onPressed: () => setState(() => _isEmailFormOpen = false),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.arrow_back, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  'Volver',
-                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-              ],
+          Center(
+            child: Text(
+              'Al registrarte aceptas los Términos de Servicio',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
             ),
           ),
         ],
@@ -365,7 +354,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   fontWeight: FontWeight.w500,
                 ),
           ),
-          onPressed: _loadingGoogle ? null : _onGoogleSignIn,
+          onPressed: _loadingGoogle ? null : _onGoogleSignUp,
         ),
       );
 
@@ -398,7 +387,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildFooter() => Column(
         children: [
           Text(
-            '¿No tienes cuenta?',
+            '¿Ya tienes cuenta?',
             style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   color: AppColors.graphite,
                 ),
@@ -406,13 +395,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           const SizedBox(height: 4),
           GestureDetector(
             onTap: () {
-              _loginEmailCtl.clear();
-              _loginPasswordCtl.clear();
-              setState(() => _isEmailFormOpen = false);
-              widget.onRegisterTap?.call();
+              _emailCtl.clear();
+              _passwordCtl.clear();
+              _confirmCtl.clear();
+              widget.onLoginTap?.call();
             },
             child: Text(
-              'Regístrate',
+              'Inicia sesión',
               style: Theme.of(context).textTheme.bodySmall!.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.accent,

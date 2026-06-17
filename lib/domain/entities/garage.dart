@@ -57,6 +57,8 @@ class Garage {
               .toList() ??
           [],
       isActive: (map['is_active'] as bool?) ?? true,
+      latitude: (map['latitude'] as num?)?.toDouble() ?? 0,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? 0,
       rating: (map['rating'] as num?)?.toDouble() ?? 0,
       ratingCount: (map['rating_count'] as num?)?.toInt() ?? 0,
       availabilityStart: map['availability_start'] as String?,

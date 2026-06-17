@@ -8,6 +8,7 @@ import 'package:parkflow/ui/pages/login_page.dart';
 import 'package:parkflow/ui/pages/parking_config_page.dart';
 import 'package:parkflow/ui/pages/profile_onboarding.dart';
 import 'package:parkflow/ui/pages/role_selection_page.dart';
+import 'package:parkflow/ui/pages/register_page.dart';
 import 'package:parkflow/ui/theme/app_theme.dart';
 
 void main() async {
@@ -23,6 +24,43 @@ Future<void> _requestLocationPermission() async {
       await Geolocator.requestPermission();
     }
   } catch (_) {}
+}
+
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  bool _isRegistering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: Offset(_isRegistering ? -0.3 : 0.3, 0),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      child: _isRegistering
+          ? RegisterPage(
+              key: const ValueKey('register'),
+              onLoginTap: () => setState(() => _isRegistering = false),
+            )
+          : LoginPage(
+              key: const ValueKey('login'),
+              onRegisterTap: () => setState(() => _isRegistering = true),
+            ),
+    );
+  }
 }
 
 class MyApp extends ConsumerWidget {
@@ -45,7 +83,7 @@ class MyApp extends ConsumerWidget {
             loading: () => const LoginPage(),
             error: (_, __) => const LoginPage(),
             data: (user) {
-              if (user == null) return const LoginPage();
+              if (user == null) return const AuthScreen();
               if (user.needsOnboarding) return const ProfileOnboardingPage();
               if (user.needsRoleSelection) return const RoleSelectionPage();
               if (user.needsGarageSetup) return const ParkingConfigPage();

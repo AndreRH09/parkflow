@@ -28,8 +28,6 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
     AppNavItem(icon: Icons.settings_rounded, label: 'Config'),
   ];
 
-  static const _filters = ['Todo', 'Estacionamiento', 'Vehiculo', 'Moto', 'Pickup'];
-
   Future<void> _openConfig() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ParkingConfigPage()),
@@ -84,17 +82,13 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
               children: [
                 _buildHeader(context, firstName, avatarUrl),
                 const SizedBox(height: 20),
-                _buildSearchBar(context),
                 const SizedBox(height: 16),
                 _buildQuickActions(),
-                const SizedBox(height: 16),
-                _buildFilterChips(),
                 const SizedBox(height: 20),
               ],
             ),
           ),
         ),
-        SliverToBoxAdapter(child: _buildMapPlaceholder()),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
@@ -188,46 +182,7 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.graphite.withAlpha(12),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'Buscar cochera...',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                fontFamily: 'Inter',
-              ),
-            ),
-          ),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.graphite,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.location_on_outlined,
-                color: AppColors.mustard, size: 18),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildQuickActions() {
     return Row(
@@ -251,52 +206,7 @@ class _HostHomePageState extends ConsumerState<HostHomePage> {
     );
   }
 
-  Widget _buildFilterChips() {
-    return SizedBox(
-      height: 42,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final active = i == _filterIndex;
-          return GestureDetector(
-            onTap: () => setState(() => _filterIndex = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                color: active ? AppColors.graphite : AppColors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: active ? AppColors.graphite : AppColors.dustGray,
-                ),
-                boxShadow: active
-                    ? [
-                        BoxShadow(
-                          color: AppColors.graphite.withAlpha(30),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
-                    : [],
-              ),
-              child: Text(
-                _filters[i],
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: active ? AppColors.white : AppColors.textSecondary,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  
 
   Widget _buildMapPlaceholder() {
     return Container(
@@ -607,7 +517,7 @@ class _GarageCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      width: 200,
+      width: 230,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(32),

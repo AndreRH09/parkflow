@@ -1,3 +1,8 @@
+String? _extractSpotAddress(Map<String, dynamic> map) {
+  final spot = map['spot'] as Map<String, dynamic>?;
+  return spot?['address'] as String?;
+}
+
 /// Reserva confirmada (resultado de aceptar una puja).
 /// Tabla: bookings. Usada por HU-13 (ganancias del anfitrión).
 class Booking {
@@ -13,6 +18,7 @@ class Booking {
   final String? vehiclePlate;
   final String status; // reserved | active | completed | cancelled
   final DateTime createdAt;
+  final String? spotAddress;
 
   const Booking({
     required this.id,
@@ -27,6 +33,7 @@ class Booking {
     this.vehiclePlate,
     this.status = 'reserved',
     required this.createdAt,
+    this.spotAddress,
   });
 
   bool get isCancelled => status == 'cancelled';
@@ -45,6 +52,7 @@ class Booking {
       vehiclePlate: map['vehicle_plate'] as String?,
       status: (map['status'] as String?) ?? 'reserved',
       createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
+      spotAddress: _extractSpotAddress(map),
     );
   }
 }

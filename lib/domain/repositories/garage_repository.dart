@@ -24,6 +24,9 @@ abstract class GarageRepository {
 
   Future<List<Garage>> getGaragesByHost(String hostId);
 
+  /// Busca cocheras cercanas (HU-05): geospatial query via nearby_spots RPC.
+  Future<List<Garage>> getNearbyGarages(double lat, double lng, {int radiusM = 800});
+
   /// Actualiza disponibilidad de una cochera (HU-11): switch maestro + horario + días.
   /// `start`/`end` formato 'HH:mm'; `days` enteros 1=Lun..7=Dom.
   Future<void> updateAvailability({

@@ -39,6 +39,9 @@ dependencies:
   geolocator: ^14.0.2
   geocoding: ^4.0.0
   fl_chart: ^1.2.0
+  flutter_map: ^7.0.0
+  latlong2: ^0.9.1
+  flutter_local_notifications: ^18.0.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +68,8 @@ flutter:
     - lib/ui/assets/PNGLogo.png
     - lib/ui/assets/OficialLogo.jpg
     - lib/ui/assets/BannerParkFlow.png
+    - lib/ui/assets/Google.png
+
 
 
   # NOTE: This project previously used google_fonts to load Inter at runtime.
