@@ -7,6 +7,8 @@
 
 -- Reemplaza nearby_spots para exponer lat/lng como floats explícitos
 -- (la columna geom es PostGIS WKB binary, no parseable en Dart)
+DROP FUNCTION IF EXISTS public.nearby_spots(FLOAT, FLOAT, INT);
+
 CREATE OR REPLACE FUNCTION public.nearby_spots(lat FLOAT, lng FLOAT, radius_m INT DEFAULT 800)
 RETURNS TABLE (
   id UUID, host_id UUID, address TEXT, photo_urls TEXT[],
