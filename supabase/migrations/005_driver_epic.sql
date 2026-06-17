@@ -28,8 +28,8 @@ RETURNS TABLE (
     ST_X(geom::geometry) AS longitude
   FROM public.parking_spots
   WHERE is_active = TRUE
-    AND ST_DWithin(geom::geography, ST_MakePoint(lng, lat)::geography, radius_m)
-  ORDER BY geom <-> ST_MakePoint(lng, lat)::geometry
+    AND ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, radius_m)
+  ORDER BY geom <-> ST_SetSRID(ST_MakePoint(lng, lat), 4326)
   LIMIT 50;
 $$;
 
