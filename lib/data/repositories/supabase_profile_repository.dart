@@ -30,12 +30,16 @@ class SupabaseProfileRepository implements ProfileRepository {
     String? phone,
     String? city,
     String? avatarUrl,
+    String? vehicleType,
+    String? vehiclePlate,
   }) async {
     final updates = <String, dynamic>{};
     if (fullName != null) updates['full_name'] = fullName;
     if (phone != null) updates['phone'] = phone;
     if (city != null) updates['city'] = city;
     if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+    if (vehicleType != null) updates['vehicle_type'] = vehicleType;
+    if (vehiclePlate != null) updates['vehicle_plate'] = vehiclePlate;
     if (updates.isEmpty) return;
     await _client.from('profiles').update(updates).eq('id', userId);
   }

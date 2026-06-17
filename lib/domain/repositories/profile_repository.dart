@@ -14,6 +14,8 @@ abstract class ProfileRepository {
     String? phone,
     String? city,
     String? avatarUrl,
+    String? vehicleType,
+    String? vehiclePlate,
   });
 
   Future<String> uploadAvatar({

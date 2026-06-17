@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:parkflow/dependency_injection/providers.dart';
 import 'package:parkflow/ui/pages/driver_home_page.dart';
+import 'package:parkflow/ui/pages/driver_onboarding_page.dart';
 import 'package:parkflow/ui/pages/host_home_page.dart';
 import 'package:parkflow/ui/pages/login_page.dart';
 import 'package:parkflow/ui/pages/parking_config_page.dart';
@@ -87,6 +88,7 @@ class MyApp extends ConsumerWidget {
               if (user.needsOnboarding) return const ProfileOnboardingPage();
               if (user.needsRoleSelection) return const RoleSelectionPage();
               if (user.needsGarageSetup) return const ParkingConfigPage();
+              if (user.needsDriverOnboarding) return const DriverOnboardingPage();
               return user.role == 'host'
                   ? const HostHomePage()
                   : const DriverHomePage();

@@ -12,6 +12,8 @@ class UserProfile {
   final bool profileComplete;
   final bool garageConfigComplete;
   final String? city;
+  final String? vehicleType;
+  final String? vehiclePlate;
 
   const UserProfile({
     required this.id,
@@ -27,12 +29,15 @@ class UserProfile {
     this.profileComplete = false,
     this.garageConfigComplete = false,
     this.city,
+    this.vehicleType,
+    this.vehiclePlate,
   });
 
   bool get needsOnboarding =>
       !profileComplete || fullName == null || age == null || dni == null;
   bool get needsRoleSelection => profileComplete && role == null;
   bool get needsGarageSetup => role == 'host' && !garageConfigComplete;
+  bool get needsDriverOnboarding => role == 'driver' && (vehicleType == null || vehiclePlate == null);
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
@@ -49,6 +54,8 @@ class UserProfile {
       profileComplete: (map['profile_complete'] as bool?) ?? false,
       garageConfigComplete: (map['garage_config_complete'] as bool?) ?? false,
       city: map['city'] as String?,
+      vehicleType: map['vehicle_type'] as String?,
+      vehiclePlate: map['vehicle_plate'] as String?,
     );
   }
 
@@ -62,6 +69,8 @@ class UserProfile {
         'profile_complete': profileComplete,
         'garage_config_complete': garageConfigComplete,
         'city': city,
+        'vehicle_type': vehicleType,
+        'vehicle_plate': vehiclePlate,
       };
 
   UserProfile copyWith({
@@ -74,6 +83,8 @@ class UserProfile {
     bool? profileComplete,
     bool? garageConfigComplete,
     String? city,
+    String? vehicleType,
+    String? vehiclePlate,
   }) {
     return UserProfile(
       id: id,
@@ -89,6 +100,8 @@ class UserProfile {
       profileComplete: profileComplete ?? this.profileComplete,
       garageConfigComplete: garageConfigComplete ?? this.garageConfigComplete,
       city: city ?? this.city,
+      vehicleType: vehicleType ?? this.vehicleType,
+      vehiclePlate: vehiclePlate ?? this.vehiclePlate,
     );
   }
 }
