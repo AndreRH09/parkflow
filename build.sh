@@ -18,7 +18,7 @@ flutter config --no-analytics
 
 # Volver al directorio del proyecto (la raíz)
 echo "Returning to project root..."
-cd $OLDPWD
+cd "$OLDPWD"
 
 echo "Project directory: $(pwd)"
 echo "Checking for pubspec.yaml:"
@@ -27,7 +27,18 @@ ls -la pubspec.yaml
 echo "Getting dependencies..."
 flutter pub get
 
-echo "Building web..."
-flutter build web --release --no-tree-shake-icons
+# Validar que las variables requeridas estén presentes
+if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+  echo "Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY"
+  exit 1
+fi
+
+echo "Building web with environment variables..."
+flutter build web \
+  --release \
+  --no-tree-shake-icons \
+  --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+  --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+  --dart-define=GOOGLE_WEB_CLIENT_ID="${GOOGLE_WEB_CLIENT_ID:-}"
 
 echo "✅ Build completed!"
