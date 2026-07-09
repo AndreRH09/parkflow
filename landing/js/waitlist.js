@@ -1,7 +1,7 @@
-// Completa estos dos valores con los de tu proyecto:
-// Supabase Dashboard -> Settings -> API -> Project URL / anon public key
-const SUPABASE_URL = "SUPABASE_URL_AQUI";
-const SUPABASE_ANON_KEY = "SUPABASE_ANON_KEY_AQUI";
+// Project URL / publishable key de Supabase (seguras de exponer en el navegador,
+// el acceso real lo controlan las políticas RLS de cada tabla).
+const SUPABASE_URL = "https://vdndznhhdipzsahnesif.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_bfKTF1DQ01foPY84HnMBiQ_iRyL3hAg";
 
 (function () {
   const form = document.getElementById("waitlist-form");
