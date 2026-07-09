@@ -94,7 +94,7 @@ class _GarageDetailSheetState extends ConsumerState<GarageDetailSheet> {
                   fit: BoxFit.cover,
                   errorBuilder: (c, e, st) => Container(
                     height: 200,
-                    color: AppColors.dustGray.withOpacity(0.2),
+                    color: AppColors.dustGray.withValues(alpha: 0.2),
                     child: const Icon(Icons.image_not_supported),
                   ),
                 ),
@@ -117,6 +117,47 @@ class _GarageDetailSheetState extends ConsumerState<GarageDetailSheet> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            // Nombre dueño (HU-07)
+            if (widget.garage.hostName != null)
+              Row(
+                children: [
+                  const Icon(Icons.person_rounded, size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.garage.hostName!,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.graphite),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 12),
+            // Dimensiones (HU-07)
+            if (widget.garage.width != null || widget.garage.height != null)
+              Row(
+                children: [
+                  const Icon(Icons.straighten_rounded, size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Dimensiones: ${widget.garage.width?.toStringAsFixed(1) ?? "?"}m x ${widget.garage.height?.toStringAsFixed(1) ?? "?"}m',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            // Tipos de vehículo
+            if (widget.garage.vehicleTypes.isNotEmpty)
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: widget.garage.vehicleTypes
+                    .map((t) => Chip(
+                          label: Text(t, style: const TextStyle(fontSize: 11)),
+                          backgroundColor: AppColors.dustGray.withValues(alpha: 0.15),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ))
+                    .toList(),
+              ),
             const SizedBox(height: 16),
             // Base price
             Text(
@@ -184,7 +225,7 @@ class _GarageDetailSheetState extends ConsumerState<GarageDetailSheet> {
               decoration: BoxDecoration(
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.dustGray.withOpacity(0.2)),
+                border: Border.all(color: AppColors.dustGray.withValues(alpha: 0.2)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -16,15 +16,20 @@ import 'package:parkflow/data/repositories/supabase_garage_repository.dart';
 import 'package:parkflow/data/repositories/supabase_bid_repository.dart';
 import 'package:parkflow/data/repositories/supabase_booking_repository.dart';
 
+bool _supabaseInitialized = false;
+
 final appInitProvider = FutureProvider<void>((ref) async {
-  await Supabase.initialize(
-    url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.anonKey,
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce,
-      autoRefreshToken: true,
-    ),
-  );
+  if (!_supabaseInitialized) {
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.anonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
+      ),
+    );
+    _supabaseInitialized = true;
+  }
 });
 
 final supabaseClientProvider = Provider<SupabaseClient>(

@@ -16,6 +16,7 @@ class Garage {
   final String? availabilityStart; // 'HH:mm:ss'
   final String? availabilityEnd;
   final List<int> availableDays; // 1=Lun..7=Dom
+  final String? hostName; // join a profiles (nearby_spots RPC)
 
   const Garage({
     required this.id,
@@ -35,6 +36,7 @@ class Garage {
     this.availabilityStart,
     this.availabilityEnd,
     this.availableDays = const [1, 2, 3, 4, 5, 6, 7],
+    this.hostName,
   });
 
   String? get primaryPhotoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
@@ -67,6 +69,7 @@ class Garage {
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const [1, 2, 3, 4, 5, 6, 7],
+      hostName: map['host_name'] as String?,
     );
   }
 }

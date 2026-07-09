@@ -7,19 +7,15 @@ import 'package:parkflow/domain/repositories/auth_repository.dart';
 
 class SupabaseAuthRepository implements AuthRepository {
   final SupabaseClient _client;
+  final GoogleSignIn _googleSignIn;
 
   UserProfile? _cachedProfile;
-  bool _googleInitialized = false;
 
-  SupabaseAuthRepository(this._client);
-
-  Future<void> _ensureGoogleInit() async {
-    if (_googleInitialized) return;
-    await GoogleSignIn.instance.initialize(
-      serverClientId: AppConfig.googleWebClientId,
-    );
-    _googleInitialized = true;
-  }
+  SupabaseAuthRepository(this._client)
+      : _googleSignIn = GoogleSignIn(
+          scopes: ['email', 'profile'],
+          serverClientId: AppConfig.googleWebClientId,
+        );
 
   @override
   UserProfile? get currentUser => _cachedProfile;
@@ -39,11 +35,12 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<UserProfile> signInWithGoogle() async {
-    await _ensureGoogleInit();
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw Exception('Google sign-in cancelled');
+    }
 
-    final googleUser = await GoogleSignIn.instance.authenticate();
-
-    final googleAuth = googleUser.authentication;
+    final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
     if (idToken == null) {
       throw Exception('No ID token received from Google');
@@ -52,6 +49,7 @@ class SupabaseAuthRepository implements AuthRepository {
     final response = await _client.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
+      accessToken: googleAuth.accessToken,
     );
 
     if (response.user == null) {
@@ -92,10 +90,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    try {
-      await _ensureGoogleInit();
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {}
+    await _googleSignIn.signOut();
     await _client.auth.signOut();
     _cachedProfile = null;
   }
@@ -103,23 +98,17 @@ class SupabaseAuthRepository implements AuthRepository {
   @override
   Future<void> deleteAccount() async {
     await _client.rpc('delete_user_account');
-    try {
-      await _ensureGoogleInit();
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {}
+    await _googleSignIn.signOut();
     await _client.auth.signOut();
     _cachedProfile = null;
   }
 
   Future<UserProfile> _fetchProfile(String userId) async {
-    final rows = await _client
+    final data = await _client
         .from('profiles')
         .select()
         .eq('id', userId)
-        .limit(1);
-    if (rows.isEmpty) {
-      return UserProfile(id: userId);
-    }
-    return UserProfile.fromMap(rows.first);
+        .single();
+    return UserProfile.fromMap(data);
   }
 }
