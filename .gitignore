@@ -220,3 +220,9 @@ app.*.symbols
 .agents/rules/personal-*
 .agents/skills/personal-*
 /.agent-shell/
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock

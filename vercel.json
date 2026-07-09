@@ -1,0 +1,9 @@
+{
+  "buildCommand": "bash build.sh",
+  "outputDirectory": "build/web",
+  "functions": {
+    "api/**/*.dart": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
