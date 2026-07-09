@@ -9,7 +9,11 @@ export PATH="$PATH:/tmp/flutter/bin"
 flutter config --enable-web
 flutter config --no-analytics
 
-cd /
+echo "Project directory: $VERCEL_PROJECT_DIR"
+cd "$VERCEL_PROJECT_DIR"
+
+echo "Current directory: $(pwd)"
+echo "Checking pubspec.yaml: $(ls -la pubspec.yaml)"
 
 echo "Getting dependencies..."
 flutter pub get
