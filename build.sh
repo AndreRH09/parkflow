@@ -1,19 +1,28 @@
 #!/bin/bash
 set -e
 
+echo "=== Starting Flutter Build ==="
+echo "Current directory: $(pwd)"
+echo "Contents:"
+ls -la
+
+# Instalar Flutter en /opt (no /tmp)
 echo "Installing Flutter..."
-cd /tmp
+mkdir -p /opt
+cd /opt
 git clone https://github.com/flutter/flutter.git -b stable --depth 1
-export PATH="$PATH:/tmp/flutter/bin"
+export PATH="$PATH:/opt/flutter/bin"
 
 flutter config --enable-web
 flutter config --no-analytics
 
-echo "Project directory: $VERCEL_PROJECT_DIR"
-cd "$VERCEL_PROJECT_DIR"
+# Volver al directorio del proyecto (la raíz)
+echo "Returning to project root..."
+cd $OLDPWD
 
-echo "Current directory: $(pwd)"
-echo "Checking pubspec.yaml: $(ls -la pubspec.yaml)"
+echo "Project directory: $(pwd)"
+echo "Checking for pubspec.yaml:"
+ls -la pubspec.yaml
 
 echo "Getting dependencies..."
 flutter pub get
