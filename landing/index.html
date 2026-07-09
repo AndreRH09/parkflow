@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParkFlow — Estacionamiento entre vecinos</title>
+<meta name="description" content="ParkFlow conecta a quienes tienen una cochera libre con quienes necesitan estacionar cerca: búsqueda por geolocalización, ofertas en tiempo real y reserva al instante.">
+<link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="#top">
+      <img src="assets/img/logo.png" alt="">
+      <span>Parkflow</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#construido">Qué ya funciona</a>
+      <a href="#piloto">Piloto</a>
+    </nav>
+    <div class="header-ctas">
+      <a class="btn btn-ghost btn-sm" href="#como-funciona">Ver cómo funciona</a>
+      <a class="btn btn-primary btn-sm" href="#piloto">Sumarme al piloto</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="container">
+      <div class="hero-copy">
+        <p class="eyebrow">Estacionamiento entre vecinos</p>
+        <h1>Cada cochera vacía es un sitio que alguien busca <mark>ahora mismo</mark></h1>
+        <p class="hero-lead">ParkFlow conecta a quienes tienen una cochera libre con quienes necesitan estacionar cerca: búsqueda por geolocalización, ofertas en tiempo real y reserva confirmada al instante.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="#piloto">Sumarme al piloto</a>
+          <a class="btn btn-ghost" href="#como-funciona">Ver cómo funciona</a>
+        </div>
+        <div class="hero-tags">
+          <span class="tag">Búsqueda por geolocalización</span>
+          <span class="tag">Ofertas en tiempo real</span>
+          <span class="tag">Panel de ingresos</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="park-card park-card--listing">
+          <div class="card-top">
+            <div class="card-icon">P</div>
+            <span class="card-dist">0.6 km</span>
+          </div>
+          <p class="card-title">Cochera techada · Zona Sur</p>
+          <p class="card-sub">Disponible ahora · Acceso 24h</p>
+          <div class="card-price">
+            <span>Precio publicado</span>
+            <b>S/ 5.00 / h</b>
+          </div>
+        </div>
+        <div class="park-card park-card--bid">
+          <p class="bid-label">Nueva oferta recibida</p>
+          <p class="bid-amount">S/ 4.50 <s>S/ 5.00</s></p>
+          <div class="bid-actions">
+            <span class="chip chip-accept">Aceptar</span>
+            <span class="chip chip-decline">Rechazar</span>
+          </div>
+        </div>
+        <div class="pin-badge"><span class="pin-dot"></span>3 cocheras cerca de ti</div>
+        <p class="art-caption">Ilustración del flujo de la app — no es una captura real.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="lane-divider"></div>
+
+  <section id="como-funciona">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">Dos carriles, un mismo flujo</p>
+        <h2>Cómo funciona ParkFlow</h2>
+      </div>
+      <div class="lanes">
+        <div class="lane lane--host">
+          <p class="lane-label">Tienes una cochera</p>
+          <div class="step">
+            <span class="step-num">01</span>
+            <div class="step-body">
+              <h3>Publica tu cochera</h3>
+              <p>Sube fotos, define el precio por hora y marca los bloques horarios en los que está libre.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">02</span>
+            <div class="step-body">
+              <h3>Recibe ofertas</h3>
+              <p>Conductores cercanos piden reservar al precio publicado o proponen el suyo.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">03</span>
+            <div class="step-body">
+              <h3>Acepta y cobra</h3>
+              <p>Confirmas la reserva y el ingreso queda registrado en tu panel, con historial y gráficos.</p>
+            </div>
+          </div>
+        </div>
+        <div class="lane lane--driver">
+          <p class="lane-label">Buscas dónde estacionar</p>
+          <div class="step">
+            <span class="step-num">01</span>
+            <div class="step-body">
+              <h3>Busca cerca de ti</h3>
+              <p>El mapa ubica cocheras disponibles alrededor tuyo al instante, por distancia real.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">02</span>
+            <div class="step-body">
+              <h3>Reserva o haz una oferta</h3>
+              <p>Al precio publicado por el host, o proponiendo el precio que estás dispuesto a pagar.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">03</span>
+            <div class="step-body">
+              <h3>Llega y estaciona</h3>
+              <p>Con la reserva confirmada, tu lugar te espera sin llamadas ni mensajes de último minuto.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="construido" class="section-alt">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">En desarrollo activo</p>
+        <h2>Lo que ya funciona hoy</h2>
+      </div>
+      <div class="grid-features">
+        <div class="feature">
+          <span class="feature-mark">01 · GEOLOCALIZACIÓN</span>
+          <h3>Búsqueda por cercanía</h3>
+          <p>Motor de geolocalización que ubica cocheras disponibles a tu alrededor, ordenadas por distancia real.</p>
+        </div>
+        <div class="feature">
+          <span class="feature-mark">02 · BIDS</span>
+          <h3>Ofertas en vivo</h3>
+          <p>Sistema de pujas: cada conductor puede proponer su propio precio por un espacio.</p>
+        </div>
+        <div class="feature">
+          <span class="feature-mark">03 · DISPONIBILIDAD</span>
+          <h3>Panel de disponibilidad</h3>
+          <p>El host define bloques libres, ocupados o bloqueados, sin coordinar por chat o llamadas.</p>
+        </div>
+        <div class="feature">
+          <span class="feature-mark">04 · INGRESOS</span>
+          <h3>Panel de ingresos</h3>
+          <p>Historial de reservas y gráficos de ganancias por cada cochera publicada.</p>
+        </div>
+        <div class="feature">
+          <span class="feature-mark">05 · CUENTAS</span>
+          <h3>Acceso seguro</h3>
+          <p>Inicio de sesión con Google o correo, con perfiles separados para host y conductor.</p>
+        </div>
+        <div class="feature">
+          <span class="feature-mark">06 · AVISOS</span>
+          <h3>Notificaciones al instante</h3>
+          <p>Avisos de nuevas ofertas, reservas confirmadas y cambios de disponibilidad.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="piloto">
+    <div class="container">
+      <div class="status">
+        <div>
+          <p class="eyebrow" style="color:var(--accent);">Dónde estamos hoy</p>
+          <h2 style="margin-top:1rem;">La app ya corre de punta a punta. Falta pulir el lanzamiento.</h2>
+          <p>ParkFlow está en fase piloto: la app móvil funciona completa, pero todavía no está publicada en Play Store ni App Store. Déjanos tus datos y te avisamos apenas puedas probarla.</p>
+        </div>
+        <form id="waitlist-form" class="waitlist-form" novalidate>
+          <div class="form-field">
+            <label for="full_name">Nombre</label>
+            <input type="text" id="full_name" name="full_name" autocomplete="name" required>
+          </div>
+          <div class="form-field">
+            <label for="email">Correo</label>
+            <input type="email" id="email" name="email" autocomplete="email" required>
+          </div>
+          <fieldset class="role-toggle">
+            <legend>¿Cómo quieres usar ParkFlow?</legend>
+            <label class="role-option">
+              <input type="radio" name="role" value="host" checked>
+              <span>Tengo una cochera</span>
+            </label>
+            <label class="role-option">
+              <input type="radio" name="role" value="driver">
+              <span>Busco dónde estacionar</span>
+            </label>
+          </fieldset>
+          <div class="form-field">
+            <label for="message">Mensaje (opcional)</label>
+            <textarea id="message" name="message" rows="2"></textarea>
+          </div>
+          <div class="form-honeypot" aria-hidden="true">
+            <label for="website">No llenar este campo</label>
+            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <button type="submit" class="btn btn-primary">Sumarme al piloto</button>
+          <p class="form-feedback" aria-live="polite"></p>
+          <p class="status-note">¿Prefieres escribirnos directo? <a class="status-note-link" href="mailto:hola@parkflow.app">hola@parkflow.app</a></p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container footer-row">
+    <div class="footer-brand">
+      <img src="assets/img/logo.png" alt="">
+      <div>
+        <span>Parkflow</span>
+        <p class="footer-tagline">Estacionamiento entre vecinos.</p>
+      </div>
+    </div>
+    <div class="footer-meta">
+      <a class="footer-mail" href="mailto:hola@parkflow.app">hola@parkflow.app</a>
+      <span class="footer-stack">Flutter · Supabase · PostGIS</span>
+    </div>
+  </div>
+</footer>
+<script src="js/waitlist.js" defer></script>
+</body>
+</html>
