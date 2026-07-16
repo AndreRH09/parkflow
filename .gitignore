@@ -17,6 +17,7 @@ CLAUDE.md
 *.ipr
 *.iws
 .env
+dart_defines.json
 .idea/P
 ContextLiteral.md
 Planning

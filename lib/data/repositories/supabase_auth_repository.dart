@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkflow/config/app_config.dart';
@@ -7,15 +8,16 @@ import 'package:parkflow/domain/repositories/auth_repository.dart';
 
 class SupabaseAuthRepository implements AuthRepository {
   final SupabaseClient _client;
-  final GoogleSignIn _googleSignIn;
+
+  // google_sign_in_web lanza ArgumentError con serverClientId. En web nunca se toca.
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId: AppConfig.googleWebClientId,
+  );
 
   UserProfile? _cachedProfile;
 
-  SupabaseAuthRepository(this._client)
-      : _googleSignIn = GoogleSignIn(
-          scopes: ['email', 'profile'],
-          serverClientId: AppConfig.googleWebClientId,
-        );
+  SupabaseAuthRepository(this._client);
 
   @override
   UserProfile? get currentUser => _cachedProfile;
@@ -34,7 +36,16 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserProfile> signInWithGoogle() async {
+  Future<void> signInWithGoogle() async {
+    if (kIsWeb) {
+      // ponytail: en web, redirect OAuth de Supabase. La sesión llega por authStateChanges.
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: Uri.base.origin,
+      );
+      return;
+    }
+
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
       throw Exception('Google sign-in cancelled');
@@ -56,9 +67,7 @@ class SupabaseAuthRepository implements AuthRepository {
       throw Exception('Supabase authentication failed');
     }
 
-    final profile = await _fetchProfile(response.user!.id);
-    _cachedProfile = profile;
-    return profile;
+    _cachedProfile = await _fetchProfile(response.user!.id);
   }
 
   @override
@@ -90,7 +99,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    if (!kIsWeb) await _googleSignIn.signOut();
     await _client.auth.signOut();
     _cachedProfile = null;
   }
@@ -98,7 +107,7 @@ class SupabaseAuthRepository implements AuthRepository {
   @override
   Future<void> deleteAccount() async {
     await _client.rpc('delete_user_account');
-    await _googleSignIn.signOut();
+    if (!kIsWeb) await _googleSignIn.signOut();
     await _client.auth.signOut();
     _cachedProfile = null;
   }

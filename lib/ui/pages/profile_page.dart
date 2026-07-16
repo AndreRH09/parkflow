@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:parkflow/data/services/reverse_geocode.dart';
 import 'package:parkflow/dependency_injection/providers.dart';
 import 'package:parkflow/ui/theme/app_theme.dart';
 
@@ -56,7 +57,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
     if (xFile == null) return;
 
-    final ext = xFile.path.split('.').last.toLowerCase();
+    // xFile.path en web es un blob: sin extensión. name sí trae el archivo original.
+    final ext = xFile.name.split('.').last.toLowerCase();
     if (ext != 'jpg' && ext != 'jpeg' && ext != 'png') {
       _showError('Solo se permiten imágenes JPG o PNG.');
       return;
@@ -87,34 +89,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         return;
       }
 
-      Position? pos = await Geolocator.getLastKnownPosition();
+      // getLastKnownPosition lanza UnsupportedError en web: solo cache movil.
+      Position? pos = kIsWeb ? null : await Geolocator.getLastKnownPosition();
       pos ??= await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.low),
       ).timeout(const Duration(seconds: 10));
 
-      final placemarks = await placemarkFromCoordinates(
+      final place = await reverseGeocode(
         pos.latitude,
         pos.longitude,
       ).timeout(const Duration(seconds: 8));
 
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        final city = p.locality?.isNotEmpty == true
-            ? p.locality!
-            : p.subAdministrativeArea ?? p.administrativeArea ?? '';
-        if (city.isNotEmpty) {
-          _cityCtl.text = city;
-        } else {
-          _showError('Ciudad no detectada. Escríbela manualmente.');
-        }
+      if (place != null && place.city.isNotEmpty) {
+        _cityCtl.text = place.city;
+      } else {
+        _showError('Ciudad no detectada. Escríbela manualmente.');
       }
     } on TimeoutException {
       _showError('Tiempo agotado. Activa GPS y verifica conexión.');
     } on LocationServiceDisabledException {
       _showError('GPS desactivado. Actívalo e intenta de nuevo.');
-    } catch (_) {
-      _showError('No se pudo detectar la ciudad. Escríbela manualmente.');
+    } catch (e) {
+      _showError('No se pudo detectar la ciudad ($e). Escríbela manualmente.');
     } finally {
       if (mounted) setState(() => _detectingCity = false);
     }

@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parkflow/data/services/reverse_geocode.dart';
 import 'package:parkflow/dependency_injection/providers.dart';
 import 'package:parkflow/ui/theme/app_theme.dart';
 
@@ -76,7 +77,8 @@ class _ParkingConfigPageState extends ConsumerState<ParkingConfigPage> {
         return;
       }
 
-      Position? pos = await Geolocator.getLastKnownPosition();
+      // getLastKnownPosition lanza UnsupportedError en web: solo cache movil.
+      Position? pos = kIsWeb ? null : await Geolocator.getLastKnownPosition();
       pos ??= await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.medium),
@@ -85,25 +87,20 @@ class _ParkingConfigPageState extends ConsumerState<ParkingConfigPage> {
       _latitude = pos.latitude;
       _longitude = pos.longitude;
 
-      final placemarks = await placemarkFromCoordinates(
+      final place = await reverseGeocode(
         pos.latitude,
         pos.longitude,
       ).timeout(const Duration(seconds: 8));
 
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        final parts = [
-          p.street,
-          p.locality ?? p.subAdministrativeArea,
-        ].where((s) => s != null && s.isNotEmpty).join(', ');
-        if (parts.isNotEmpty) _addressCtl.text = parts;
+      if (place != null && place.address.isNotEmpty) {
+        _addressCtl.text = place.address;
       }
     } on TimeoutException {
       _showError('Tiempo agotado. Activa GPS y verifica conexión.');
     } on LocationServiceDisabledException {
       _showError('GPS desactivado. Actívalo e intenta de nuevo.');
-    } catch (_) {
-      _showError('No se pudo detectar la ubicación.');
+    } catch (e) {
+      _showError('No se pudo detectar la ubicación: $e');
     } finally {
       if (mounted) setState(() => _detectingLocation = false);
     }
@@ -118,7 +115,8 @@ class _ParkingConfigPageState extends ConsumerState<ParkingConfigPage> {
     );
     if (xFile == null) return;
 
-    final ext = xFile.path.split('.').last.toLowerCase();
+    // xFile.path en web es un blob: sin extensión. name sí trae el archivo original.
+    final ext = xFile.name.split('.').last.toLowerCase();
     if (ext != 'jpg' && ext != 'jpeg' && ext != 'png') {
       _showError('Solo se permiten imágenes JPG o PNG.');
       return;
@@ -593,11 +591,13 @@ class _ParkingConfigPageState extends ConsumerState<ParkingConfigPage> {
   // ── Feature toggles ─────────────────────────────────────────────────────────
 
   Widget _buildFeatureToggles() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
+    // Material, no Container: SwitchListTile pinta su ink en el Material más
+    // cercano; un DecoratedBox intermedio con color lo taparía.
+    return Material(
+      color: AppColors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.dustGray),
+        side: const BorderSide(color: AppColors.dustGray),
       ),
       child: Column(
         children: _featureOptions.asMap().entries.map((entry) {
